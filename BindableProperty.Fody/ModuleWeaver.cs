@@ -159,7 +159,7 @@ public class ModuleWeaver: BaseModuleWeaver
                         il.Append(Instruction.Create(OpCodes.Call, getTypeFromHandleMethod));
                         il.Append(Instruction.Create(OpCodes.Ldtoken, type));
                         il.Append(Instruction.Create(OpCodes.Call, getTypeFromHandleMethod));
-                        foreach (var instr in getDefaultValue(property.PropertyType))
+                        foreach (var instr in getDefaultValue(module.ImportReference(property.PropertyType)))
                             il.Append(instr);
                         il.Append(Instruction.Create(OpCodes.Ldc_I4_1));
                         il.Append(Instruction.Create(OpCodes.Ldnull));
@@ -253,14 +253,30 @@ public class ModuleWeaver: BaseModuleWeaver
     static IEnumerable<Instruction> getDefaultValue(TypeReference propertyType)
     {
         if (!propertyType.IsValueType)
-        {
             yield return Instruction.Create(OpCodes.Ldnull);
-        }
-        else
+        if (propertyType.FullName == "System.Byte")
         {
             yield return Instruction.Create(OpCodes.Ldc_I4_0);
-            yield return Instruction.Create(OpCodes.Box, propertyType);
+            yield return Instruction.Create(OpCodes.Conv_U1);
         }
+        if (propertyType.FullName == "System.Int16" || propertyType.FullName == "System.UInt16")
+        {
+            yield return Instruction.Create(OpCodes.Ldc_I4_0);
+            yield return Instruction.Create(OpCodes.Conv_U2);
+        }
+        else if (propertyType.FullName == "System.Int32" || propertyType.FullName == "System.UInt32")
+            yield return Instruction.Create(OpCodes.Ldc_I4_0);
+        else if (propertyType.FullName == "System.Int64" || propertyType.FullName == "System.UInt64")
+        {
+            yield return Instruction.Create(OpCodes.Ldc_I4_0);
+            yield return Instruction.Create(OpCodes.Conv_I8);
+        }
+        else if (propertyType.FullName == "System.Double")
+            yield return Instruction.Create(OpCodes.Ldc_R8, 0d);
+        else if (propertyType.FullName == "System.Single")
+            yield return Instruction.Create(OpCodes.Ldc_R4, 0f);
+        yield return Instruction.Create(OpCodes.Box, propertyType);
+        
     }
 
 
