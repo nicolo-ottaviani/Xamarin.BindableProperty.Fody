@@ -5,6 +5,9 @@
     <DebugType>portable</DebugType>
     <Authors>BindableProperty.Fody</Authors>
     <Product>BindableProperty.Fody</Product>
+    <AssemblyName>BindableProperty.Fody</AssemblyName>
+    <RootNamespace>BindableProperty.Fody</RootNamespace>
+    <Version>0.1.2</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net46|AnyCPU'">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
