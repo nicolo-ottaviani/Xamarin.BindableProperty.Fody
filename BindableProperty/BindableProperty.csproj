@@ -13,6 +13,8 @@
     <Product>BindableProperty.Fody</Product>
     <PackageTags>ILWeaving, Fody, Cecil, AOP, Xamarin</PackageTags>
     <Description>An assembly weaver, based on Fody, that automatically transforms get/set properties into Xamarin bindable properties.</Description>
+    <PackageProjectUrl>https://github.com/nicolo-ottaviani/Xamarin.BindableProperty.Fody</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/nicolo-ottaviani/Xamarin.BindableProperty.Fody/master/package_icon.png</PackageIconUrl>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Fody" Version="3.2.3" PrivateAssets="None" />
