@@ -1,3 +1,9 @@
+#Xamarin.BindableProperty.Fody
+
+An assembly weaver, based on Fody, that automatically transforms plain auto-implemented properties into BindableProperties that can be used in Xamarin Forms.
+
+##Usage
+
 Just decorate an auto-implemented get/set property with the Bindable attribute.
 
 For example, this:
@@ -16,5 +22,6 @@ will become like this:
         public string FontFamily { get { return (string)GetValue(FontFamilyProperty); } set { SetValue(FontFamilyProperty, value); } }
     }
 
-The public static readonly XxxProperty is automatically generated if not present. The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
+The public static readonly XxxProperty is automatically generated if not present. 
+The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
 The Bindable attribute is removed from the resulting dll.
