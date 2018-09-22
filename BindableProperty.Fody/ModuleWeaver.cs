@@ -271,10 +271,10 @@ public class ModuleWeaver: BaseModuleWeaver
             yield return Instruction.Create(OpCodes.Ldc_I4_0);
             yield return Instruction.Create(OpCodes.Conv_I8);
         }
-        else if (propertyType.FullName == "System.Double")
-            yield return Instruction.Create(OpCodes.Ldc_R8, 0d);
         else if (propertyType.FullName == "System.Single")
             yield return Instruction.Create(OpCodes.Ldc_R4, 0f);
+        else if (propertyType.FullName == "System.Double")
+            yield return Instruction.Create(OpCodes.Ldc_R8, 0d);
         yield return Instruction.Create(OpCodes.Box, propertyType);
         
     }
