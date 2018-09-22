@@ -1,8 +1,8 @@
-#Xamarin.BindableProperty.Fody
+# Xamarin.BindableProperty.Fody
 
 An assembly weaver, based on Fody, that automatically transforms plain auto-implemented properties into BindableProperties that can be used in Xamarin Forms.
 
-##Usage
+## Usage
 
 Just decorate an auto-implemented get/set property with the Bindable attribute.
 
