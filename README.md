@@ -36,3 +36,8 @@ will become like this:
 The public static readonly XxxProperty is automatically generated if not present. 
 The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
 The Bindable attribute is removed from the resulting dll.
+
+# Other info
+
+The actual weaver code is in the BindablePropery.Fody project, while the BindableProperty project serves to build the NuGet package.
+
