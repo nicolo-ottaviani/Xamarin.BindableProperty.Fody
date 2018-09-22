@@ -2,6 +2,17 @@
 
 An assembly weaver, based on Fody, that automatically transforms plain auto-implemented properties into BindableProperties that can be used in Xamarin Forms.
 
+## Installation
+
+Compile the BindableProperty project in order to build the NuGet package (it is in the "nuget" directory in the solution folder). Add this nuget package to your prject. Then, add a file called FodyWeavers.xml in your project root (build action must be set to Content), and write the following inside:
+    
+    <?xml version="1.0" encoding="utf-8"?>
+    <Weavers>
+        <BindableProperty />
+    </Weavers>
+ 
+ See the Fody documentation for more info on the FodyWeavers.xml file.
+
 ## Usage
 
 Just decorate an auto-implemented get/set property with the Bindable attribute.
