@@ -7,13 +7,13 @@
     <ApplicationIcon />
     <OutputType>Library</OutputType>
     <StartupObject />
+    <AutoGenerateBindingRedirects>False</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <PackageReference Include="FodyHelpers" Version="3.2.3" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
-    <ProjectReference Include="..\AssemblyToProcess\AssemblyToProcess.csproj" />
     <ProjectReference Include="..\BindableProperty.Fody\BindableProperty.Fody.csproj" />
     <ProjectReference Include="..\BindableProperty\BindableProperty.csproj" />
   </ItemGroup>

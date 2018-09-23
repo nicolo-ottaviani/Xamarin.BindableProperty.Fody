@@ -48,7 +48,7 @@ public class ModuleWeaver: BaseModuleWeaver
             //    System.IO.File.Open(dllFilepath, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite),
             //    new ReaderParameters() { AssemblyResolver = resolver }
             //    );
-            LogInfo($"Reference = {this.References}");
+            LogInfo($"Reference = {References}");
             var module = ModuleDefinition;
             var mscorlibModule = ModuleDefinition.ReadModule(
                 (platform == Platform.Android ? monoAndroidDirpath : xamarinIosDirpath) + "\\mscorlib.dll",
