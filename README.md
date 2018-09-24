@@ -37,6 +37,23 @@ The public static readonly XxxProperty is automatically generated if not present
 The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
 The Bindable attribute is removed from the resulting dll.
 
+
+If you want some piece of code to be called whenever the property value changes, simply add a void OnXxxChanged method, where Xxx is the name of the property. It will be registered on the ValueChanged delegate in the BindableProperty.Create method:
+
+    public class MyButton : Xamarin.Forms.Button
+    {
+        [Bindable]
+        public string FontFamily { get; set; }
+        
+        private void OnFontFamilyChanged(string newValue) { 
+            //do stuff here
+            Console.WriteLine("Property value is changed");
+        }
+    }
+
+The OnXxxChanged method must have only one parameter  (whose type must match the type of the property) that will contain the new value.
+The OnXxxChanged method can be public or private as well.
+
 # Other info
 
 The actual weaver code is in the BindablePropery.Fody project, while the BindableProperty project serves to build the NuGet package.
