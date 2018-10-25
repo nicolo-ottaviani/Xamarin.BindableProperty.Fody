@@ -8,6 +8,7 @@ using System;
 using System.Xml.Linq;
 using System.Xml;
 using System.Xml.XPath;
+using System.IO;
 
 public class ModuleWeaver: BaseModuleWeaver
 {
@@ -22,42 +23,23 @@ public class ModuleWeaver: BaseModuleWeaver
     {
         try
         {
-            var csprojFilepath = System.IO.Directory.GetFiles(ProjectDirectoryPath, "*.csproj").First();
+            var mscorlibPath = References.Split(';').FirstOrDefault(x => Path.GetFileName(x).ToLower() == "mscorlib.dll");
+            var xamarinFormsCorePath = References.Split(';').FirstOrDefault(x => Path.GetFileName(x).ToLower() == "Xamarin.Forms.Core.dll".ToLower());
 
-            extractInfoFromCsproj(csprojFilepath, out var xamarinFormsVersion, out var assemblyName, out var platform);
+            if (mscorlibPath == null) throw new Exception($"Cannot find mscorlib.dll among the project references. \n Project references: \n{References}");
+            if (xamarinFormsCorePath == null) throw new Exception($"Cannot find Xamarin.Forms.Core.dll among the project references. \n Project references: \n{References}");
 
-            if (xamarinFormsVersion == null) throw new FormatException($"Cannot detect Xamarin.Forms version from the .csproj file");
-            if (assemblyName == null) throw new FormatException($"Cannot detect assembly name from the .csproj file");
-            if (platform == Platform.Unknown) throw new FormatException($"Cannot detect the platform (Droid or iOS) from the .csproj file");
-
-            var xamarinFormsDirpath =
-                $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}\\.nuget\\packages\\xamarin.forms\\{xamarinFormsVersion}\\lib\\MonoAndroid10";
-            if (!System.IO.Directory.Exists(xamarinFormsDirpath)) throw new System.IO.FileNotFoundException($"Cannot find folder {xamarinFormsDirpath}");
-
-            //var dllFilepath = $"{System.IO.Path.GetDirectoryName(csprojFilepath)}\\{outDirpath.TrimEnd('\\')}\\{assemblyName}.dll";
-            //if (!System.IO.File.Exists(dllFilepath)) throw new System.IO.FileNotFoundException($"Cannot find file {dllFilepath}");
-
-
-
-
-            var resolver = new DefaultAssemblyResolver();
-            resolver.AddSearchDirectory(xamarinFormsDirpath);
-            resolver.AddSearchDirectory(platform == Platform.Android ? monoAndroidDirpath : xamarinIosDirpath);
-
-            //var module = ModuleDefinition.ReadModule(
-            //    System.IO.File.Open(dllFilepath, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite),
-            //    new ReaderParameters() { AssemblyResolver = resolver }
-            //    );
-            LogInfo($"Reference = {References}");
             var module = ModuleDefinition;
             var mscorlibModule = ModuleDefinition.ReadModule(
-                (platform == Platform.Android ? monoAndroidDirpath : xamarinIosDirpath) + "\\mscorlib.dll",
-                new ReaderParameters() { AssemblyResolver = resolver }
+                mscorlibPath,
+                new ReaderParameters() { AssemblyResolver = module.AssemblyResolver }
                 );
             var xamarinFormsCoreModule = ModuleDefinition.ReadModule(
-                xamarinFormsDirpath + "\\Xamarin.Forms.Core.dll",
-                new ReaderParameters() { AssemblyResolver = resolver }
+                xamarinFormsCorePath,
+                new ReaderParameters() { AssemblyResolver = module.AssemblyResolver }
                 );
+
+            //if (DateTime.Now.Year == 2018) throw new Exception("BYE BYE");
 
             //load some types and methods
             var systemTypeType = module.ImportReference(new TypeReference("System", "Type", mscorlibModule, mscorlibModule).Resolve());
@@ -228,22 +210,17 @@ public class ModuleWeaver: BaseModuleWeaver
             return;
         }
         LogInfo($"^^^ {typeof(ModuleWeaver).Assembly.GetName().Name} ended ^^^");
-        //System.Threading.Thread.Sleep(2000);
-        //var ns = GetNamespace();
-        //var newType = new TypeDefinition(ns, "Hello", TypeAttributes.Public, TypeSystem.ObjectReference);
-        //AddConstructor(newType);
-        //AddHelloWorld(newType);
-        //ModuleDefinition.Types.Add(newType);
-        //LogInfo("Added type 'Hello' with method 'World'.");
     }
 
-    static void extractInfoFromCsproj(string csprojFilepath, out string xamarinFormsVersion, out string assemblyName, out Platform platform)
+    void extractInfoFromCsproj(string csprojFilepath, out string xamarinFormsVersion, out string assemblyName, out Platform platform)
     {
         var csproj = XDocument.Load(csprojFilepath);
-        var man = new XmlNamespaceManager(csproj.CreateNavigator().NameTable);
-        man.AddNamespace("x", "http://schemas.microsoft.com/developer/msbuild/2003");
-        xamarinFormsVersion = csproj.XPathSelectAttribute("//x:PackageReference[@Include='Xamarin.Forms']/@Version", man)?.Value;
-        assemblyName = csproj.XPathSelectElement("//x:AssemblyName", man)?.Value?.ToLower();
+        //var man = new XmlNamespaceManager(csproj.CreateNavigator().NameTable);
+        //man.AddNamespace("x", "http://schemas.microsoft.com/developer/msbuild/2003");
+        //xamarinFormsVersion = csproj.XPathSelectAttribute("//x:PackageReference[@Include='Xamarin.Forms']/@Version", man)?.Value;
+        //assemblyName = csproj.XPathSelectElement("//x:AssemblyName", man)?.Value?.ToLower();
+        xamarinFormsVersion = csproj.Descendants().FirstOrDefault(x => x.Name.LocalName == "PackageReference" && x.Attribute("Include")?.Value == "Xamarin.Forms")?.Attribute("Version")?.Value;
+        assemblyName = csproj.Descendants().FirstOrDefault(x => x.Name.LocalName == "AssemblyName")?.Value?.ToLower();
         if (assemblyName != null)
             platform = assemblyName.EndsWith("droid") ? Platform.Android : (assemblyName.EndsWith("ios") ? Platform.iOS : Platform.Unknown);
         else
@@ -278,46 +255,7 @@ public class ModuleWeaver: BaseModuleWeaver
         yield return Instruction.Create(OpCodes.Box, propertyType);
         
     }
-
-
-    public override IEnumerable<string> GetAssembliesForScanning()
-    {
-        yield return "netstandard";
-        yield return "mscorlib";
-    }
-
-    //string GetNamespace()
-    //{
-    //    var attributes = ModuleDefinition.Assembly.CustomAttributes;
-    //    var namespaceAttribute = attributes.FirstOrDefault(x => x.AttributeType.FullName == "NamespaceAttribute");
-    //    if (namespaceAttribute == null)
-    //    {
-    //        return null;
-    //    }
-    //    attributes.Remove(namespaceAttribute);
-    //    return (string) namespaceAttribute.ConstructorArguments.First().Value;
-    //}
-
-    //void AddConstructor(TypeDefinition newType)
-    //{
-    //    var method = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, TypeSystem.VoidReference);
-    //    var objectConstructor = ModuleDefinition.ImportReference(TypeSystem.ObjectDefinition.GetConstructors().First());
-    //    var processor = method.Body.GetILProcessor();
-    //    processor.Emit(OpCodes.Ldarg_0);
-    //    processor.Emit(OpCodes.Call, objectConstructor);
-    //    processor.Emit(OpCodes.Ret);
-    //    newType.Methods.Add(method);
-    //}
-
-    //void AddHelloWorld(TypeDefinition newType)
-    //{
-    //    var method = new MethodDefinition("World", MethodAttributes.Public, TypeSystem.StringReference);
-    //    var processor = method.Body.GetILProcessor();
-    //    processor.Emit(OpCodes.Ldstr, "Hello World");
-    //    processor.Emit(OpCodes.Ret);
-    //    newType.Methods.Add(method);
-    //}
-
+    
     public override bool ShouldCleanReference => true;
 }
 

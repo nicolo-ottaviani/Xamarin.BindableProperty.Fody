@@ -12,6 +12,7 @@ namespace TestApp
         public MainPage()
         {
             InitializeComponent();
+            BindingContext = this;
         }
 
         [Bindable]

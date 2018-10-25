@@ -21,6 +21,6 @@
     <PackageReference Include="FodyPackaging" Version="3.2.3" PrivateAssets="All" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="rem rmdir /s /q c:\users\nicoloot\.nuget\packages\bindableproperty.fody&#xD;&#xA;rem echo Directory di cache dei pacchetti nuget cancellata." />
+    <Exec Command="rmdir /s /q c:\users\nicoloot\.nuget\packages\bindableproperty.fody&#xD;&#xA;echo Directory di cache dei pacchetti nuget cancellata." />
   </Target>
 </Project>
