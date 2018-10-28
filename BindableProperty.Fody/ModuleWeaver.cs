@@ -255,7 +255,13 @@ public class ModuleWeaver: BaseModuleWeaver
         yield return Instruction.Create(OpCodes.Box, propertyType);
         
     }
-    
+
+    public override IEnumerable<string> GetAssembliesForScanning()
+    {
+        yield return "netstandard";
+        yield return "mscorlib";
+    }
+
     public override bool ShouldCleanReference => true;
 }
 

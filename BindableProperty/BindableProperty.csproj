@@ -6,7 +6,7 @@
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
     <Authors>Nicolò Ottaviani</Authors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <AssemblyName>BindableProperty</AssemblyName>
     <RootNamespace>BindableProperty</RootNamespace>
     <PackageId>BindableProperty.Fody</PackageId>
