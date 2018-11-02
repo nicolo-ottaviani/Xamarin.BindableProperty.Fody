@@ -20,8 +20,24 @@ namespace TestApp
 
         public void OnEnteredTextChanged(string value)
         {
-            label.BackgroundColor = (label.BackgroundColor == Color.DarkRed) ? Color.Gray : Color.DarkRed;
+            LabelColor = (LabelColor == Color.DarkRed) ? Color.Gray : Color.DarkRed;
+            SomeDouble = 0.1d * value.Length;
         }
+
+        [Bindable]
+        public Color LabelColor { get; set; }
+
+        [Bindable]
+        public double SomeDouble { get; set; }
+
+        //public static BindableProperty LabelColorProperty = BindableProperty.Create(nameof(LabelColor), typeof(Color), typeof(MainPage), new Color(), BindingMode.TwoWay, null, null, null);
+        //public Color LabelColor { get { return (Color)GetValue(LabelColorProperty); } set { SetValue(LabelColorProperty, value); } }
+
+        //static void PIPPO()
+        //{
+        //    Label2ColorProperty = BindableProperty.Create(nameof(Label2Color), typeof(Color), typeof(MainPage), new Color(), BindingMode.TwoWay, null, null, null);
+        //}
+
     }
 
     [AttributeUsage(AttributeTargets.Property)]

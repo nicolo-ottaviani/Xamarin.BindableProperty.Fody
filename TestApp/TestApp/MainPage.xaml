@@ -11,7 +11,7 @@
             />
         <Entry 
             Text="{Binding EnteredText}"
-            BackgroundColor="Gray"
+            BackgroundColor="{Binding LabelColor}"
             />
         <Label 
             Text="It will be repeated here:"
@@ -20,6 +20,12 @@
             x:Name="label"
             Text="{Binding EnteredText}"
             />
+        <Slider
+            Minimum="0"
+            Maximum="10"
+            Value="{Binding SomeDouble}"
+            >            
+        </Slider>
         <BoxView 
             VerticalOptions="FillAndExpand" 
             />

@@ -12,13 +12,7 @@ using System.IO;
 
 public class ModuleWeaver: BaseModuleWeaver
 {
-
-    static readonly string monoAndroidDirpath =
-        $"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\\Microsoft Visual Studio\\2017\\Community\\Common7\\IDE\\ReferenceAssemblies\\Microsoft\\Framework\\MonoAndroid\\v1.0";
-    static readonly string xamarinIosDirpath =
-        $"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\\Reference Assemblies\\Microsoft\\Framework\\Xamarin.iOS\\v1.0";
-
-
+    
     public override void Execute()
     {
         try
@@ -38,8 +32,6 @@ public class ModuleWeaver: BaseModuleWeaver
                 xamarinFormsCorePath,
                 new ReaderParameters() { AssemblyResolver = module.AssemblyResolver }
                 );
-
-            //if (DateTime.Now.Year == 2018) throw new Exception("BYE BYE");
 
             //load some types and methods
             var systemTypeType = module.ImportReference(new TypeReference("System", "Type", mscorlibModule, mscorlibModule).Resolve());
@@ -96,6 +88,8 @@ public class ModuleWeaver: BaseModuleWeaver
                         type.Fields.Add(staticField);
                     }
 
+                    var propertyType = module.ImportReference(property.PropertyType);
+
                     //check if a On_Xxx_Changed method exists and create a wrapper method __On_Xxx_Changed
                     var onChangedMethod = type.Methods.FirstOrDefault(x => x.Name == $"On{property.Name}Changed" && !x.IsStatic && x.Parameters.Count == 1 && x.Parameters[0].ParameterType.FullName == property.PropertyType.FullName);
                     MethodDefinition onChangedWrapperMethod = null;
@@ -141,8 +135,7 @@ public class ModuleWeaver: BaseModuleWeaver
                         il.Append(Instruction.Create(OpCodes.Call, getTypeFromHandleMethod));
                         il.Append(Instruction.Create(OpCodes.Ldtoken, type));
                         il.Append(Instruction.Create(OpCodes.Call, getTypeFromHandleMethod));
-                        foreach (var instr in getDefaultValue(module.ImportReference(property.PropertyType)))
-                            il.Append(instr);
+                        getDefaultValue(module, property, il);
                         il.Append(Instruction.Create(OpCodes.Ldc_I4_1));
                         il.Append(Instruction.Create(OpCodes.Ldnull));
                         if (onChangedMethod != null)
@@ -172,7 +165,18 @@ public class ModuleWeaver: BaseModuleWeaver
                         il.Append(Instruction.Create(OpCodes.Ldarg_0));
                         il.Append(Instruction.Create(OpCodes.Ldsfld, staticField));
                         il.Append(Instruction.Create(OpCodes.Call, getValueMethod));
-                        il.Append(Instruction.Create(OpCodes.Castclass, property.PropertyType));
+                        if (propertyType.IsValueType)
+                        {
+                            il.Body.InitLocals = true;
+                            il.Body.Variables.Add(new VariableDefinition(propertyType));
+                            il.Append(Instruction.Create(OpCodes.Unbox_Any, propertyType));
+                            il.Append(Instruction.Create(OpCodes.Stloc_0));
+                            il.Append(Instruction.Create(OpCodes.Ldloc_0));
+                        }
+                        else
+                        {
+                            il.Append(Instruction.Create(OpCodes.Castclass, propertyType));
+                        }
                         il.Append(Instruction.Create(OpCodes.Nop));
                         il.Append(Instruction.Create(OpCodes.Ret));
                         var attr = property.GetMethod.CustomAttributes.FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
@@ -188,6 +192,8 @@ public class ModuleWeaver: BaseModuleWeaver
                         il.Append(Instruction.Create(OpCodes.Ldarg_0));
                         il.Append(Instruction.Create(OpCodes.Ldsfld, staticField));
                         il.Append(Instruction.Create(OpCodes.Ldarg_1));
+                        if (propertyType.IsValueType)
+                            il.Append(Instruction.Create(OpCodes.Box, propertyType));
                         il.Append(Instruction.Create(OpCodes.Call, setValueMethod));
                         il.Append(Instruction.Create(OpCodes.Nop));
                         il.Append(Instruction.Create(OpCodes.Ret));
@@ -212,48 +218,44 @@ public class ModuleWeaver: BaseModuleWeaver
         LogInfo($"^^^ {typeof(ModuleWeaver).Assembly.GetName().Name} ended ^^^");
     }
 
-    void extractInfoFromCsproj(string csprojFilepath, out string xamarinFormsVersion, out string assemblyName, out Platform platform)
+    private void getDefaultValue(ModuleDefinition module, PropertyDefinition property, ILProcessor il)
     {
-        var csproj = XDocument.Load(csprojFilepath);
-        //var man = new XmlNamespaceManager(csproj.CreateNavigator().NameTable);
-        //man.AddNamespace("x", "http://schemas.microsoft.com/developer/msbuild/2003");
-        //xamarinFormsVersion = csproj.XPathSelectAttribute("//x:PackageReference[@Include='Xamarin.Forms']/@Version", man)?.Value;
-        //assemblyName = csproj.XPathSelectElement("//x:AssemblyName", man)?.Value?.ToLower();
-        xamarinFormsVersion = csproj.Descendants().FirstOrDefault(x => x.Name.LocalName == "PackageReference" && x.Attribute("Include")?.Value == "Xamarin.Forms")?.Attribute("Version")?.Value;
-        assemblyName = csproj.Descendants().FirstOrDefault(x => x.Name.LocalName == "AssemblyName")?.Value?.ToLower();
-        if (assemblyName != null)
-            platform = assemblyName.EndsWith("droid") ? Platform.Android : (assemblyName.EndsWith("ios") ? Platform.iOS : Platform.Unknown);
-        else
-            platform = Platform.Unknown;
-    }
-
-    static IEnumerable<Instruction> getDefaultValue(TypeReference propertyType)
-    {
+        //foreach (var instr in getDefaultValue(module.ImportReference(property.PropertyType)))
+        //    il.Append(instr);
+        var propertyType = module.ImportReference(property.PropertyType);
         if (!propertyType.IsValueType)
-            yield return Instruction.Create(OpCodes.Ldnull);
-        if (propertyType.FullName == "System.Byte")
+            il.Append(Instruction.Create(OpCodes.Ldnull));
+        else if (propertyType.FullName == "System.Byte")
         {
-            yield return Instruction.Create(OpCodes.Ldc_I4_0);
-            yield return Instruction.Create(OpCodes.Conv_U1);
+            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+            il.Append(Instruction.Create(OpCodes.Conv_U1));
         }
-        if (propertyType.FullName == "System.Int16" || propertyType.FullName == "System.UInt16")
+        else if (propertyType.FullName == "System.Int16" || propertyType.FullName == "System.UInt16")
         {
-            yield return Instruction.Create(OpCodes.Ldc_I4_0);
-            yield return Instruction.Create(OpCodes.Conv_U2);
+            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+            il.Append(Instruction.Create(OpCodes.Conv_U2));
         }
         else if (propertyType.FullName == "System.Int32" || propertyType.FullName == "System.UInt32")
-            yield return Instruction.Create(OpCodes.Ldc_I4_0);
+            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
         else if (propertyType.FullName == "System.Int64" || propertyType.FullName == "System.UInt64")
         {
-            yield return Instruction.Create(OpCodes.Ldc_I4_0);
-            yield return Instruction.Create(OpCodes.Conv_I8);
+            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+            il.Append(Instruction.Create(OpCodes.Conv_I8));
         }
         else if (propertyType.FullName == "System.Single")
-            yield return Instruction.Create(OpCodes.Ldc_R4, 0f);
+            il.Append(Instruction.Create(OpCodes.Ldc_R4, 0f));
         else if (propertyType.FullName == "System.Double")
-            yield return Instruction.Create(OpCodes.Ldc_R8, 0d);
-        yield return Instruction.Create(OpCodes.Box, propertyType);
-        
+            il.Append(Instruction.Create(OpCodes.Ldc_R8, 0d));
+        else
+        {
+            il.Body.InitLocals = true;
+            var localVar = new VariableDefinition(propertyType);
+            il.Body.Variables.Add(localVar);
+            il.Append(Instruction.Create(OpCodes.Ldloca_S, localVar));
+            il.Append(Instruction.Create(OpCodes.Initobj, propertyType));
+            il.Append(Instruction.Create(OpCodes.Ldloc_0));
+        }
+        il.Append(Instruction.Create(OpCodes.Box, propertyType));
     }
 
     public override IEnumerable<string> GetAssembliesForScanning()
