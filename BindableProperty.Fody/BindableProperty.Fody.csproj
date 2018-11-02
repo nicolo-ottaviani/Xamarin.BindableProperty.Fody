@@ -8,11 +8,13 @@
     <AssemblyName>BindableProperty.Fody</AssemblyName>
     <RootNamespace>BindableProperty.Fody</RootNamespace>
     <Version>0.1.2</Version>
+    <AssemblyVersion>0.1.5.0</AssemblyVersion>
+    <FileVersion>0.1.5.0</FileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net46|AnyCPU'">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <WarningLevel>4</WarningLevel>
+    <WarningLevel>2</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FodyHelpers" Version="3.2.3" />
