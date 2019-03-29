@@ -6,7 +6,7 @@
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
     <Authors>Nicolò Ottaviani</Authors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Version>0.1.5</Version>
+    <Version>0.1.6</Version>
     <AssemblyName>BindableProperty</AssemblyName>
     <RootNamespace>BindableProperty</RootNamespace>
     <PackageId>BindableProperty.Fody</PackageId>
@@ -15,8 +15,9 @@
     <Description>An assembly weaver, based on Fody, that automatically transforms get/set properties into Xamarin bindable properties.</Description>
     <PackageProjectUrl>https://github.com/nicolo-ottaviani/Xamarin.BindableProperty.Fody</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/nicolo-ottaviani/Xamarin.BindableProperty.Fody/master/package_icon.png</PackageIconUrl>
-    <AssemblyVersion>0.1.5.0</AssemblyVersion>
-    <FileVersion>0.1.5.0</FileVersion>
+    <AssemblyVersion>0.1.6.0</AssemblyVersion>
+    <FileVersion>0.1.6.0</FileVersion>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Fody" Version="3.2.3" PrivateAssets="None" />
