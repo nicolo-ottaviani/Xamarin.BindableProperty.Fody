@@ -37,7 +37,7 @@ The public static readonly XxxProperty is automatically generated if not present
 The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
 The Bindable attribute is removed from the resulting dll.
 
-#OnXxxChanged method
+# OnXxxChanged method
 
 If you want some piece of code to be called whenever the property value changes, simply add a void OnXxxChanged method, where Xxx is the name of the property. It will be registered on the ValueChanged delegate in the BindableProperty.Create method:
 
