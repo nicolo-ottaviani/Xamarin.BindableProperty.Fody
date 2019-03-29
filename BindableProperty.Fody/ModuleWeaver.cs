@@ -9,6 +9,7 @@ using System.Xml.Linq;
 using System.Xml;
 using System.Xml.XPath;
 using System.IO;
+using System.Diagnostics;
 
 public class ModuleWeaver: BaseModuleWeaver
 {
@@ -52,23 +53,23 @@ public class ModuleWeaver: BaseModuleWeaver
                 module.ImportReference(
                     new MethodReference("GetTypeFromHandle", systemTypeType, systemTypeType)
                     .WithParams(
-                        new ParameterDefinition(runtimeTypeHandleType)
+                        runtimeTypeHandleType
                     ).Resolve()
                 );
             var bindablePropertyCreateMethod =
                 module.ImportReference(
                     new MethodReference("Create", bindablePropertyType, bindablePropertyType)
                     .WithParams(
-                        new ParameterDefinition(systemStringType),
-                        new ParameterDefinition(systemTypeType),
-                        new ParameterDefinition(systemTypeType),
-                        new ParameterDefinition(systemObjectType),
-                        new ParameterDefinition(bindingModeType),
-                        new ParameterDefinition(validateValueDelegateType),
-                        new ParameterDefinition(bindingPropertyChangedDelegateType),
-                        new ParameterDefinition(bindingPropertyChangingDelegateType),
-                        new ParameterDefinition(coerceValueDelegateType),
-                        new ParameterDefinition(createDefaultValueDelegateType)
+                        systemStringType,
+                        systemTypeType,
+                        systemTypeType,
+                        systemObjectType,
+                        bindingModeType,
+                        validateValueDelegateType,
+                        bindingPropertyChangedDelegateType,
+                        bindingPropertyChangingDelegateType,
+                        coerceValueDelegateType,
+                        createDefaultValueDelegateType
                     ).Resolve()
                 );
             var getValueMethod = module.ImportReference(bindableObjectType.Resolve().Methods.FirstOrDefault(x => x.Name == "GetValue"));
@@ -171,7 +172,9 @@ public class ModuleWeaver: BaseModuleWeaver
                             il.Body.Variables.Add(new VariableDefinition(propertyType));
                             il.Append(Instruction.Create(OpCodes.Unbox_Any, propertyType));
                             il.Append(Instruction.Create(OpCodes.Stloc_0));
-                            il.Append(Instruction.Create(OpCodes.Ldloc_0));
+                            Instruction ldloc0;
+                            il.Append(Instruction.Create(OpCodes.Br_S, ldloc0 = Instruction.Create(OpCodes.Ldloc_0)));
+                            il.Append(ldloc0);
                         }
                         else
                         {
@@ -182,6 +185,29 @@ public class ModuleWeaver: BaseModuleWeaver
                         var attr = property.GetMethod.CustomAttributes.FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
                         if (attr != null) property.GetMethod.CustomAttributes.Remove(attr);
                     }
+
+                    //get the names of the dependent properties
+                    var dependentPropertiesNames = 
+                        type.Properties
+                            .Where(x => 
+                                x != property
+                                && x.GetMethod != null 
+                                && !x.GetMethod.Attributes.HasFlag(MethodAttributes.Static)
+                                && x.GetMethod.Body.Instructions.Any(i => 
+                                    i.OpCode == OpCodes.Call 
+                                    && (i.Operand as MethodReference) == property.GetMethod)
+                            )
+                            .Select(x => x.Name)
+                            .ToArray();
+
+                    // get the virtual OnPropertyChanged(...) method defined in some base class of this BindableObject
+                    var onPropertyChangedMethod =
+                        module.ImportReference(
+                            new MethodReference("OnPropertyChanged", module.TypeSystem.Void, type)
+                            .WithParams(
+                                new ParameterDefinition(systemStringType)
+                            ).Resolve()
+                        );
 
                     //change the setter of the bindable property
                     if (!property.SetMethod.Body.Instructions.Any(x => x.OpCode == OpCodes.Call && x.Operand is MethodReference && (x.Operand as MethodReference).FullName == setValueMethod.FullName))
@@ -195,6 +221,12 @@ public class ModuleWeaver: BaseModuleWeaver
                         if (propertyType.IsValueType)
                             il.Append(Instruction.Create(OpCodes.Box, propertyType));
                         il.Append(Instruction.Create(OpCodes.Call, setValueMethod));
+                        foreach (var dependentPropertyName in dependentPropertiesNames)
+                        {
+                            il.Append(Instruction.Create(OpCodes.Ldarg_0));
+                            il.Append(Instruction.Create(OpCodes.Ldstr, dependentPropertyName));
+                            il.Append(Instruction.Create(OpCodes.Callvirt, onPropertyChangedMethod));
+                        }
                         il.Append(Instruction.Create(OpCodes.Nop));
                         il.Append(Instruction.Create(OpCodes.Ret));
                         var attr = property.SetMethod.CustomAttributes.FirstOrDefault(x => x.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
@@ -205,7 +237,10 @@ public class ModuleWeaver: BaseModuleWeaver
                     property.CustomAttributes.Remove(property.CustomAttributes.FirstOrDefault(attr => attr.AttributeType.Name == "BindableAttribute"));
 
                     LogInfo($"Property '{property.PropertyType.Name} {type.Name}.{property.Name}' is now a bindable property");
-                    if (onChangedMethod != null) LogInfo($"    (with associated {onChangedMethod.Name})");
+                    if (dependentPropertiesNames.Length > 0)
+                        LogInfo($"    dependent properties: {string.Join(",", dependentPropertiesNames)}");
+                    if (onChangedMethod != null)
+                        LogInfo($"    associated onchanged method: {onChangedMethod.Name})");
                 }
             }
             //module.Write();
@@ -223,39 +258,51 @@ public class ModuleWeaver: BaseModuleWeaver
         //foreach (var instr in getDefaultValue(module.ImportReference(property.PropertyType)))
         //    il.Append(instr);
         var propertyType = module.ImportReference(property.PropertyType);
-        if (!propertyType.IsValueType)
+        LogInfo(" ======>     " + propertyType.Name);
+        if (!propertyType.IsValueType || propertyType.Name.StartsWith("Nullable`1"))
+        {
             il.Append(Instruction.Create(OpCodes.Ldnull));
-        else if (propertyType.FullName == "System.Byte")
-        {
-            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
-            il.Append(Instruction.Create(OpCodes.Conv_U1));
         }
-        else if (propertyType.FullName == "System.Int16" || propertyType.FullName == "System.UInt16")
-        {
-            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
-            il.Append(Instruction.Create(OpCodes.Conv_U2));
-        }
-        else if (propertyType.FullName == "System.Int32" || propertyType.FullName == "System.UInt32")
-            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
-        else if (propertyType.FullName == "System.Int64" || propertyType.FullName == "System.UInt64")
-        {
-            il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
-            il.Append(Instruction.Create(OpCodes.Conv_I8));
-        }
-        else if (propertyType.FullName == "System.Single")
-            il.Append(Instruction.Create(OpCodes.Ldc_R4, 0f));
-        else if (propertyType.FullName == "System.Double")
-            il.Append(Instruction.Create(OpCodes.Ldc_R8, 0d));
         else
         {
-            il.Body.InitLocals = true;
-            var localVar = new VariableDefinition(propertyType);
-            il.Body.Variables.Add(localVar);
-            il.Append(Instruction.Create(OpCodes.Ldloca_S, localVar));
-            il.Append(Instruction.Create(OpCodes.Initobj, propertyType));
-            il.Append(Instruction.Create(OpCodes.Ldloc_0));
+            if (propertyType.FullName == "System.Byte")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                il.Append(Instruction.Create(OpCodes.Conv_U1));
+            }
+            else if (propertyType.FullName == "System.Int16" || propertyType.FullName == "System.UInt16")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                il.Append(Instruction.Create(OpCodes.Conv_U2));
+            }
+            else if (propertyType.FullName == "System.Int32" || propertyType.FullName == "System.UInt32")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+            }
+            else if (propertyType.FullName == "System.Int64" || propertyType.FullName == "System.UInt64")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                il.Append(Instruction.Create(OpCodes.Conv_I8));
+            }
+            else if (propertyType.FullName == "System.Single")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_R4, 0f));
+            }
+            else if (propertyType.FullName == "System.Double")
+            {
+                il.Append(Instruction.Create(OpCodes.Ldc_R8, 0d));
+            }
+            else
+            {
+                il.Body.InitLocals = true;
+                var localVar = new VariableDefinition(propertyType);
+                il.Body.Variables.Add(localVar);
+                il.Append(Instruction.Create(OpCodes.Ldloca_S, localVar));
+                il.Append(Instruction.Create(OpCodes.Initobj, propertyType));
+                il.Append(Instruction.Create(OpCodes.Ldloc_0));
+            }
+            il.Append(Instruction.Create(OpCodes.Box, propertyType));
         }
-        il.Append(Instruction.Create(OpCodes.Box, propertyType));
     }
 
     public override IEnumerable<string> GetAssembliesForScanning()

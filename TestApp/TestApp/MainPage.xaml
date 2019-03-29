@@ -11,7 +11,7 @@
             />
         <Entry 
             Text="{Binding EnteredText}"
-            BackgroundColor="{Binding LabelColor}"
+            BackgroundColor="{Binding LabelColorNotNull}"
             />
         <Label 
             Text="It will be repeated here:"
@@ -20,12 +20,17 @@
             x:Name="label"
             Text="{Binding EnteredText}"
             />
+        <Label 
+            Text="The following slider tells the length of the string:"
+            />
         <Slider
             Minimum="0"
-            Maximum="10"
+            Maximum="2"
             Value="{Binding SomeDouble}"
-            >            
-        </Slider>
+            />
+        <Label
+            Text="{Binding SomeListMax}"
+            />
         <BoxView 
             VerticalOptions="FillAndExpand" 
             />

@@ -15,28 +15,32 @@ namespace TestApp
             BindingContext = this;
         }
 
+        public static BindableProperty SomeColorNullableProperty = BindableProperty.Create(nameof(SomeColorNullable), typeof(Color?), typeof(MainPage), default(Color?), BindingMode.TwoWay, null, null, null);
+        public Color? SomeColorNullable { get { return (Color?)GetValue(SomeColorNullableProperty); } set { SetValue(SomeColorNullableProperty, value); } }
+
         [Bindable]
         public string EnteredText { get; set; }
 
         public void OnEnteredTextChanged(string value)
         {
-            LabelColor = (LabelColor == Color.DarkRed) ? Color.Gray : Color.DarkRed;
-            SomeDouble = 0.1d * value.Length;
+            LabelColor = (LabelColor == null) ? Color.Gray : (Color?)null;
+            SomeDouble = 0.1d * (value?.Length ?? 0);
+            SomeList = SomeList ?? new List<int>();
+            SomeList.Add(SomeList.Count);
         }
 
         [Bindable]
-        public Color LabelColor { get; set; }
+        public Color? LabelColor { get; set; }
 
         [Bindable]
         public double SomeDouble { get; set; }
 
-        //public static BindableProperty LabelColorProperty = BindableProperty.Create(nameof(LabelColor), typeof(Color), typeof(MainPage), new Color(), BindingMode.TwoWay, null, null, null);
-        //public Color LabelColor { get { return (Color)GetValue(LabelColorProperty); } set { SetValue(LabelColorProperty, value); } }
+        [Bindable]
+        public List<int> SomeList { get; set; }
 
-        //static void PIPPO()
-        //{
-        //    Label2ColorProperty = BindableProperty.Create(nameof(Label2Color), typeof(Color), typeof(MainPage), new Color(), BindingMode.TwoWay, null, null, null);
-        //}
+        public int SomeListMax => SomeList?.Max() ?? -1;
+
+        public Color LabelColorNotNull => LabelColor ?? Color.DarkRed;
 
     }
 

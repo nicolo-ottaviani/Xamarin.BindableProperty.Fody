@@ -18,6 +18,9 @@ public class WeaverTests
     [Fact]
     public void ValidateStaticPropertyIsInjected()
     {
+        var weavingTask = new ModuleWeaver();
+        weavingTask.ProjectDirectoryPath = new System.IO.DirectoryInfo(Environment.CurrentDirectory + "\\..\\..\\..\\..\\TestApp\\TestApp.Android").FullName;
+        testResult = weavingTask.ExecuteTestRun("..\\..\\..\\..\\TestApp\\TestApp.Android\\bin\\Debug\\TestApp.Android.dll", false);
         //Type[] types;
         //try { types = testResult.Assembly.GetTypes(); } catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
         //var type = types.First(x => x.Name == "MainPage");
