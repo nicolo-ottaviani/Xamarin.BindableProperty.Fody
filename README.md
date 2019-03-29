@@ -37,7 +37,7 @@ The public static readonly XxxProperty is automatically generated if not present
 The getter and setter methods are automatically implemented with GetValue(...) and SetValue(...) methods, respectively.
 The Bindable attribute is removed from the resulting dll.
 
-# OnXxxChanged method
+## OnXxxChanged method
 
 If you want some piece of code to be called whenever the property value changes, simply add a void OnXxxChanged method, where Xxx is the name of the property. It will be registered on the ValueChanged delegate in the BindableProperty.Create method:
 
@@ -55,7 +55,7 @@ If you want some piece of code to be called whenever the property value changes,
 The OnXxxChanged method must have only one parameter  (whose type must match the type of the property) that will contain the new value.
 The OnXxxChanged method can be public or private as well.
 
-# Dependent properties
+## Dependent properties
 
 If you have some read-only properties that depend on a bindable property, the OnPropertyChanged event is called automatically when the value of the bindable property changes.
 For example, the following code:
@@ -79,7 +79,7 @@ Would become like this:
 
 For now, you should <b>not use Fody.PropertyChanged</b> togheter with this package, because the code weaving alghoritms make conflicting modifications and will make your code behave unexpectedly.
 
-# Other info
+## Other info
 
 The actual weaver code is in the BindablePropery.Fody project, while the BindableProperty project serves to build the NuGet package.
 
